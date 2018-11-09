@@ -2,7 +2,8 @@ package fsis
 
 import simulacrum._
 
-@typeclass trait Functor[F[_]] { self =>
+@typeclass trait Functor[F[_]] {
+  self =>
 
   def map[A, B](fa: F[A])(f: A => B): F[B]
 
@@ -22,16 +23,6 @@ import simulacrum._
     }
 }
 
-trait FunctorLaws {
-
-  def identity[F[_], A](fa: F[A])(implicit F: Functor[F]) =
-    F.map(fa)(a => a) == fa
-
-  def composition[F[_], A, B, C](fa: F[A], f: A => B, g: B => C)(implicit F: Functor[F]) =
-    F.map(F.map(fa)(f))(g) == F.map(fa)(f andThen g)
-
-}
-
 object Functor {
 
   implicit val listFunctor = new Functor[List] {
@@ -44,5 +35,25 @@ object Functor {
 
   implicit def function1Functor[T] = new Functor[T => ?] {
     override def map[A, B](fa: T => A)(f: A => B): T => B = fa andThen f
+  }
+}
+
+trait FunctorLaws[F[_]] {
+
+  import Functor.ops._
+  import IsEq._
+
+  implicit def F: Functor[F]
+
+  def identity[A](fa: F[A]) =
+    fa.map(a => a) =?= fa
+
+  def composition[A, B, C](fa: F[A], f: A => B, g: B => C) =
+    fa.map(f).map(g) =?= fa.map(f andThen g)
+}
+
+object FunctorLaws {
+  def apply[F[_]](implicit F0: Functor[F]): FunctorLaws[F] = new FunctorLaws[F] {
+    override implicit def F: Functor[F] = F0
   }
 }
